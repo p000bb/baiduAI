@@ -11,6 +11,8 @@
 						<div class="img_tip">优化后</div>
 						<img class="img_left" :src="imgHead+imageUrl1" alt="">
 					</div>
+					<!-- <canvas id="canvas" style="width: 800px;height:350px;position: absolute;"
+					 @mousedown="mouseDown" @mouseup="mouseUp" @mousemove="mouseMove"></canvas> -->
 					<img class="img_left" :src="imageUrl" alt="">
 					<div class="img_left_bottom">
 						<div style="padding:20px 10px;width: 100%;height:100%">
@@ -55,6 +57,12 @@
 				loading: false,
 				imgHead: "",
 				rgbaHeight:0,
+				x:0,
+				y:0,
+				sx:0,
+				sy:0,
+				clickdown:false,
+				ctx:"",
 			}
 		},
 		props:{
@@ -95,10 +103,36 @@
 		created() {
 			this.getToken()
 		},
+		mounted() {
+				// var canvas = document.getElementById('canvas');
+				// this.ctx = canvas.getContext('2d');
+		},
 		methods: {
-			imgBottom(item) {
-				this.imageUrl = item
+			mouseDown(e){
+				console.log(e)
+				if(!this.clickdown){
+					this.clickdown = true
+					this.sx = e.layerX
+					this.sy = e.layerY
+				}
 			},
+			mouseUp(e){
+				this.clickdown = false
+			},
+			mouseMove(e){
+				if(this.clickdown){
+					this.x = e.x;
+					this.y = e.y;
+					this.ctx.fillStyle = "green";
+					this.ctx.fillRect(0,0,this.x,this.y)
+					// this.ctx.fillRect(this.sx,this.sy,this.x-this.sx,this.y-this.sy)
+					// console.log(this.x-this.sx,this.y-this.sy)
+				}
+			},
+			imgBottom(item) {
+				this.getBase64(item)
+			},
+			
 			getToken() {
 				this.$api.post("/api/oauth/2.0/token", {
 					grant_type: "client_credentials",
@@ -127,26 +161,55 @@
 				return (isJPG || isBMP || isGIF || isPNG) && isLt2M;
 			},
 			webUrl() {
-				// window.URL = window.URL || window.webkitURL;
-				// var xhr = new XMLHttpRequest();
-				// xhr.open("get", this.imgUrl, true);
-				// // 至关重要
-				// xhr.responseType = "blob";
-				// xhr.onload = function() {
-				// 	if (this.status == 200) {
-				// 		//得到一个blob对象
-				// 		var blob = this.response;
-				// 		// 至关重要
-				// 		let reader = new FileReader();
-				// 		reader.onloadend = (e) => {
-				// 			// 此处拿到的已经是 base64的图片了
-				// 			this.imageUrl = e.target.result;
-				// 			console.log(this.imageUrl)
-				// 		};
-				// 		reader.readAsDataURL(blob);
-				// 	}
-				// }
-				// xhr.send();
+				this.getBase64(this.imgUrl)
+			},
+			//	图片url转base64编码
+			getBase64(item){
+				this.loading = false;
+				this.imageUrl1 = "";
+				this.value1 = 0;
+				let that = this;
+				window.URL = window.URL || window.webkitURL;
+				var xhr = new XMLHttpRequest();
+				xhr.open("get", item, true);
+				// 至关重要
+				xhr.responseType = "blob";
+				xhr.send();
+				xhr.onload = function() {
+					if (this.status == 200) {
+						//得到一个blob对象
+						var blob = this.response;
+						// 至关重要
+						//	进行文件格式和大小验证
+						console.log(blob)
+						const isJPG = blob.type === 'image/jpeg';
+						const isGIF = blob.type === 'image/gif';
+						const isPNG = blob.type === 'image/png';
+						const isBMP = blob.type === 'image/bmp';
+						const isLt2M = blob.size / 1024 / 1024 < 2;
+						if(blob.type === 'text/html'){
+							that.$message.error('请输入正确的图片链接地址!');
+							return
+						}
+						if (!isJPG && !isGIF && !isPNG && !isBMP) {
+							that.$message.error('图片链接必须是JPG/GIF/PNG/BMP 格式!');
+							return
+						}
+						if (!isLt2M) {
+							that.$message.error('图片链接大小不能超过 2MB!');
+							return
+						}
+						let reader = new FileReader();
+						reader.readAsDataURL(blob);
+						reader.onload = (e) => {
+							// 此处拿到的已经是 base64的图片了
+							that.$emit('changeImage',e.target.result)
+							// that.imgHead = that.imageUrl.split("base64,")[0] + 'base64,'
+						};
+					}else{
+						that.$message.error('请输入正确的图片地址');
+					}
+				}
 			},
 			upLoad(file) {
 				this.loading = false;
@@ -161,11 +224,12 @@
 					this.imgUp()
 				}
 			},
-			imgUp() {
+			imgUp(val) {
+				let img = val==undefined?this.imageUrl:val
 				this.fun1 = self.setInterval(this.heightAdd, 15);
 				this.$api.post(this.url, {
 					access_token: this.token,
-					image: this.imageUrl.split("base64,")[1],
+					image: img.split("base64,")[1],
 					type: this.type,
 					// mask_id:0
 				}).then(resp => {

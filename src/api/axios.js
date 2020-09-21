@@ -42,7 +42,7 @@ axios.interceptors.response.use((res) => {
 export function post(url, params) {
 	return new Promise((resolve, reject) => {
 		axios.post(url, params = {
-				// app_key:"96B4B5059E3DB099C78FFA6E90182B33",
+				apikey:'0df993c66c0c636e29ecbb5344252a4a',
 				...params,
 			})
 			.then(response => {
