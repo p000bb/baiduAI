@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<baiduAI :imageUrl="imageUrl" :items="items" :client_id="client_id" :client_secret="client_secret" :url="url" :type="type"></baiduAI>
+		<baiduAI ref="baiduAi" :imageUrl="imageUrl" :items="items" :client_id="client_id" :client_secret="client_secret" :url="url" :type="type" @changeImage="changeImage"></baiduAI>
 	</div>
 </template>
 
@@ -21,9 +21,9 @@
 					"https://aip.bdstatic.com/portal-pc-node/dist/1595502949371/images/technology/imageprocess/colourize/5.jpg",
 				],
 				imageUrl: "https://aip.bdstatic.com/portal-pc-node/dist/1595502949371/images/technology/imageprocess/colourize/1.jpg",
-				client_id:"",
-				client_secret:"",
-				url:"/api/rest/2.0/image-process/v1/dehaze",
+				client_id:"0XY42C67scqxgEtNg9qIUCT8",
+				client_secret:"HN7PPDuCPQqVMlz41uvrAaA2aSnWKrxQ",
+				url:"/api/rest/2.0/image-process/v1/colourize",
 				type:"",
 			}
 		},
@@ -32,6 +32,11 @@
 		created() {
 		},
 		methods: {
+			changeImage(option){
+				this.imageUrl = option
+				this.$refs.baiduAi.imgHead = this.imageUrl.split("base64,")[0] + 'base64,'
+				this.$refs.baiduAi.imgUp(option);
+			}
 		}
 	}
 </script>

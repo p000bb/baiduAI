@@ -4,6 +4,7 @@ module.exports = {
 	lintOnSave: false,
 	devServer: {
 		open: true,
+		disableHostCheck: true,
 		/* 使用代理 */
 		proxy: {
 			'/api': {

@@ -3,17 +3,23 @@
 		<h2>功能演示</h2>
 		<div class="box">
 			<div class="left">
-				<div class="img_left" style="position: relative;">
+				<div class="img_left" style="position: relative;background: #343434;">
 					<div v-show="!loading" class="rgba" :style="{height:rgbaHeight+'px'}">
 					</div>
 					<el-slider v-model="value1" v-show="loading" :show-tooltip="false" style="position: absolute;width: 800px;top:50%;margin-top:-36px"></el-slider>
 					<div :style="{width:value1*8+'px'}" class="new_img" v-show="loading">
+						<div>
 						<div class="img_tip">优化后</div>
-						<img class="img_left" :src="imgHead+imageUrl1" alt="">
+						<img class="img_left1" :src="imgHead+imageUrl1" alt="">
+						</div>
 					</div>
 					<!-- <canvas id="canvas" style="width: 800px;height:350px;position: absolute;"
 					 @mousedown="mouseDown" @mouseup="mouseUp" @mousemove="mouseMove"></canvas> -->
-					<img class="img_left" :src="imageUrl" alt="">
+					 <div class="img_left" style="text-align: center;display: table;">
+						 <div style="display: table-cell; vertical-align: middle; ">
+						 <img class="img_left1" :src="imageUrl" alt="">
+						 </div>
+					 </div>
 					<div class="img_left_bottom">
 						<div style="padding:20px 10px;width: 100%;height:100%">
 							<input type="text" class="input_text" placeholder="输入图片url" v-model="imgUrl">
@@ -38,7 +44,7 @@
 				</div>
 			</div>
 			<div class="right">
-
+				<slot name="right"></slot>
 			</div>
 		</div>
 	</div>
@@ -63,6 +69,7 @@
 				sy:0,
 				clickdown:false,
 				ctx:"",
+				urlLoading:false,//	判断是否在请求 防止重复点击 浪费接口次数
 			}
 		},
 		props:{
@@ -81,11 +88,6 @@
 			//	百度ai url
 			url:{
 				type:String
-			},
-			//	百度ai 种类
-			type:{
-				type:String,
-				default:"",
 			},
 			imageUrl:{
 				type:String
@@ -109,7 +111,6 @@
 		},
 		methods: {
 			mouseDown(e){
-				console.log(e)
 				if(!this.clickdown){
 					this.clickdown = true
 					this.sx = e.layerX
@@ -126,20 +127,21 @@
 					this.ctx.fillStyle = "green";
 					this.ctx.fillRect(0,0,this.x,this.y)
 					// this.ctx.fillRect(this.sx,this.sy,this.x-this.sx,this.y-this.sy)
-					// console.log(this.x-this.sx,this.y-this.sy)
 				}
 			},
 			imgBottom(item) {
+				if(this.urlLoading) return  this.$message({message: '正在获取图片数据,请勿重复点击',type: 'warning',showClose: true});
 				this.getBase64(item)
 			},
 			
-			getToken() {
+			getToken(callback) {
 				this.$api.post("/api/oauth/2.0/token", {
 					grant_type: "client_credentials",
 					client_id: this.client_id,
 					client_secret: this.client_secret
 				}).then(resp => {
 					this.token = resp.data.access_token
+					this.getBase64(this.items[0])
 				})
 			},
 			beforeAvatarUpload(file) {
@@ -161,6 +163,7 @@
 				return (isJPG || isBMP || isGIF || isPNG) && isLt2M;
 			},
 			webUrl() {
+				if(this.urlLoading) return  this.$message({message: '正在获取图片数据,请勿重复点击',type: 'warning',showClose: true});
 				this.getBase64(this.imgUrl)
 			},
 			//	图片url转base64编码
@@ -181,7 +184,6 @@
 						var blob = this.response;
 						// 至关重要
 						//	进行文件格式和大小验证
-						console.log(blob)
 						const isJPG = blob.type === 'image/jpeg';
 						const isGIF = blob.type === 'image/gif';
 						const isPNG = blob.type === 'image/png';
@@ -212,6 +214,7 @@
 				}
 			},
 			upLoad(file) {
+				if(this.urlLoading) return  this.$message({message: '正在获取图片数据,请勿重复点击',type: 'warning',showClose: true});
 				this.loading = false;
 				this.imageUrl1 = "";
 				this.value1 = 0;
@@ -224,19 +227,22 @@
 					this.imgUp()
 				}
 			},
-			imgUp(val) {
+			imgUp(val,type) {
+				if(this.urlLoading) return  this.$message({message: '正在获取图片数据,请勿重复点击',type: 'warning',showClose: true});
+				this.urlLoading = true
 				let img = val==undefined?this.imageUrl:val
+				let option = type==undefined?{}:type
 				this.fun1 = self.setInterval(this.heightAdd, 15);
 				this.$api.post(this.url, {
 					access_token: this.token,
 					image: img.split("base64,")[1],
-					type: this.type,
-					// mask_id:0
+					...option,
 				}).then(resp => {
 					window.clearInterval(this.fun1)
 					this.loading = true;
 					this.imageUrl1 = resp.data.image
 					this.fun = self.setInterval(this.valueAdd, 10);
+					this.urlLoading = false
 				})
 			},
 			valueAdd() {
@@ -268,10 +274,13 @@
 		height: 600px;
 		display: flex;
 	}
-
 	.img_left {
 		width: 800px;
 		height: 450px;
+	}
+	.img_left1 {
+		max-width: 800px;
+		max-height: 450px;
 	}
 
 	.img_bottom {
@@ -316,7 +325,7 @@
 	
 	.img_left_bottom {
 		position: relative;
-		bottom: 106px;
+		bottom: 100px;
 		left: 0;
 		height: 100px;
 		width: 800px;
